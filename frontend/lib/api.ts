@@ -1,40 +1,12 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react"
 import type { Task } from "./types"
-import type { RootState } from "./store"
-
-interface User {
-  id: string
-  name: string
-  email: string
-}
 
 export const api = createApi({
   baseQuery: fetchBaseQuery({
-    baseUrl: "/api",
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.token
-      if (token) {
-        headers.set("authorization", `Bearer ${token}`)
-      }
-      return headers
-    },
+    baseUrl: "http://localhost:4000/api",
   }),
   tagTypes: ["Task"],
   endpoints: (builder) => ({
-    login: builder.mutation<{ user: User; token: string }, { email: string; password: string }>({
-      query: (credentials) => ({
-        url: "login",
-        method: "POST",
-        body: credentials,
-      }),
-    }),
-    register: builder.mutation<{ user: User; token: string }, { name: string; email: string; password: string }>({
-      query: (userData) => ({
-        url: "register",
-        method: "POST",
-        body: userData,
-      }),
-    }),
     getTasks: builder.query<Task[], void>({
       query: () => "tasks",
       providesTags: ["Task"],
@@ -70,8 +42,6 @@ export const api = createApi({
 })
 
 export const {
-  useLoginMutation,
-  useRegisterMutation,
   useGetTasksQuery,
   useGetTaskQuery,
   useAddTaskMutation,

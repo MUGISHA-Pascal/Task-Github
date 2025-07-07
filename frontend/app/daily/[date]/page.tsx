@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation"
 import { format, parseISO } from "date-fns"
 import { ArrowLeft } from "lucide-react"
-import { useGetTasksQuery } from "@/lib/taskApi"
+import { useGetTasksQuery } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 

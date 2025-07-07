@@ -20,6 +20,7 @@ interface TaskFormProps {
   onSubmit: (task: Task) => void
   onCancel: () => void
   initialData?: Task | null
+  isSubmitting?: boolean
 }
 
 const categories: Category[] = [
@@ -30,13 +31,15 @@ const categories: Category[] = [
   { name: "Finance", color: "bg-yellow-500" },
 ]
 
-export default function TaskForm({ onSubmit, onCancel, initialData }: TaskFormProps) {
+export default function TaskForm({ onSubmit, onCancel, initialData, isSubmitting: externalSubmitting }: TaskFormProps) {
   const [title, setTitle] = useState(initialData?.title || "")
   const [description, setDescription] = useState(initialData?.description || "")
   const [priority, setPriority] = useState<"low" | "medium" | "high" | "">(initialData?.priority || "")
   const [date, setDate] = useState<Date | undefined>(initialData?.dueDate ? new Date(initialData.dueDate) : undefined)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [category, setCategory] = useState<string>(initialData?.category || "")
+
+  const submitting = typeof externalSubmitting === "boolean" ? externalSubmitting : isSubmitting
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,7 +57,7 @@ export default function TaskForm({ onSubmit, onCancel, initialData }: TaskFormPr
       createdAt: initialData?.createdAt || new Date().toISOString(),
       dueDate: date ? date.toISOString() : undefined,
       completedAt: initialData?.completedAt || null,
-      category: category || undefined,
+      category: category || "",
     }
 
     // Simulate API call
@@ -121,7 +124,7 @@ export default function TaskForm({ onSubmit, onCancel, initialData }: TaskFormPr
           {categories.map((cat) => (
             <Badge
               key={cat.name}
-              className={`cursor-pointer ${cat.color} ${category === cat.name ? "ring-2 ring-offset-2" : ""}`}
+              className={`cursor-pointer ${cat.color} ${(category || "") === cat.name ? "ring-2 ring-offset-2" : ""}`}
               onClick={() => setCategory(cat.name)}
             >
               {cat.name}
@@ -131,11 +134,11 @@ export default function TaskForm({ onSubmit, onCancel, initialData }: TaskFormPr
       </div>
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? <Loader className="mr-2" /> : null}
+        <Button type="submit" disabled={submitting}>
+          {submitting ? <Loader className="mr-2" /> : null}
           {initialData ? "Update" : "Create"} Task
         </Button>
       </div>

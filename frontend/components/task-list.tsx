@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd"
-import { Edit, Trash2 } from "lucide-react"
+import { Edit, Trash2, Loader } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
@@ -17,9 +17,10 @@ interface TaskListProps {
   onToggleComplete: (task: Task) => void
   onEdit: (task: Task) => void
   onReorder: (tasks: Task[]) => void
+  deletingTaskId?: string
 }
 
-export default function TaskList({ tasks, onDelete, onToggleComplete, onEdit, onReorder }: TaskListProps) {
+export default function TaskList({ tasks, onDelete, onToggleComplete, onEdit, onReorder, deletingTaskId }: TaskListProps) {
   const [filter, setFilter] = useState<"all" | "active" | "completed">("all")
 
   const filteredTasks = tasks.filter((task) => {
@@ -138,9 +139,13 @@ export default function TaskList({ tasks, onDelete, onToggleComplete, onEdit, on
                               <DropdownMenuItem
                                 onClick={() => onDelete(task.id)}
                                 className="text-destructive focus:text-destructive"
+                                disabled={deletingTaskId === task.id}
                               >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
+                                {deletingTaskId === task.id ? (
+                                  <span className="flex items-center"><Loader className="h-4 w-4 mr-2 animate-spin" />Deleting...</span>
+                                ) : (
+                                  <><Trash2 className="h-4 w-4 mr-2" />Delete</>
+                                )}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

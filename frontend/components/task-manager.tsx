@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -13,64 +13,73 @@ import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 import { TaskStatistics } from "@/components/task-statistics"
 import { ConfettiCelebration } from "@/components/confetti-celebration"
+import { useGetTasksQuery, useAddTaskMutation, useUpdateTaskMutation, useDeleteTaskMutation } from "@/lib/api"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function TaskManager() {
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { data: tasks = [], isLoading, isFetching, refetch } = useGetTasksQuery()
+  const [addTask, { isLoading: isAdding }] = useAddTaskMutation()
+  const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation()
+  const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [showConfetti, setShowConfetti] = useState(false)
+  const { toast } = useToast()
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null)
 
-  useEffect(() => {
-    // Simulate loading delay
-    const timer = setTimeout(() => {
-      if (typeof window !== "undefined") {
-        const savedTasks = localStorage.getItem("tasks")
-        setTasks(savedTasks ? JSON.parse(savedTasks) : [])
-        setIsLoading(false)
-      }
-    }, 1000)
-
-    return () => clearTimeout(timer)
-  }, [])
-
-  useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(tasks))
-  }, [tasks])
-
-  const handleAddTask = (task: Omit<Task, "id">) => {
-    const newTask: Task = {
-      ...task,
-      id: Date.now().toString(),
-      completed: false,
-      createdAt: new Date().toISOString(),
-      completedAt: null,
+  const handleAddTask = async (task: Omit<Task, "id">) => {
+    try {
+      await addTask(task).unwrap()
+      setIsFormOpen(false)
+      refetch()
+      toast({ title: "Task created!", description: `Task '${task.title}' was added successfully.` })
+    } catch (e) {
+      toast({ title: "Failed to add task", description: (e as Error)?.message || "An error occurred.", variant: "destructive" })
     }
-    setTasks([...tasks, newTask])
-    setIsFormOpen(false)
   }
 
-  const handleUpdateTask = (updatedTask: Task) => {
-    setTasks(tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task)))
-    setEditingTask(null)
+  const handleUpdateTask = async (updatedTask: Task) => {
+    try {
+      await updateTask(updatedTask).unwrap()
+      setEditingTask(null)
+      setIsFormOpen(false)
+      refetch()
+      toast({ title: "Task updated!", description: `Task '${updatedTask.title}' was updated successfully.` })
+    } catch (e) {
+      toast({ title: "Failed to update task", description: (e as Error)?.message || "An error occurred.", variant: "destructive" })
+    }
   }
 
-  const handleDeleteTask = (id: string) => {
-    setTasks(tasks.filter((task) => task.id !== id))
+  const handleDeleteTask = async (id: string) => {
+    const taskToDelete = tasks.find(t => t.id === id)
+    try {
+      setDeletingTaskId(id)
+      await deleteTask(id).unwrap()
+      refetch()
+      toast({ title: "Task deleted!", description: `Task '${taskToDelete?.title || id}' was deleted.` })
+    } catch (e) {
+      toast({ title: "Failed to delete task", description: (e as Error)?.message || "An error occurred.", variant: "destructive" })
+    } finally {
+      setDeletingTaskId(null)
+    }
   }
 
-  const handleToggleTaskCompletion = (task: Task) => {
+  const handleToggleTaskCompletion = async (task: Task) => {
     const updatedTask = {
       ...task,
       completed: !task.completed,
       completedAt: !task.completed ? new Date().toISOString() : null,
     }
-    setTasks(tasks.map((t) => (t.id === task.id ? updatedTask : t)))
-
-    if (!task.completed) {
-      setShowConfetti(true)
-      setTimeout(() => setShowConfetti(false), 5000) // Hide confetti after 5 seconds
+    try {
+      await updateTask(updatedTask).unwrap()
+      if (!task.completed) {
+        setShowConfetti(true)
+        setTimeout(() => setShowConfetti(false), 5000)
+      }
+      refetch()
+    } catch (e) {
+      // Optionally show error toast
     }
   }
 
@@ -85,7 +94,7 @@ export default function TaskManager() {
       task.description?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  if (isLoading) {
+  if (isLoading || isFetching) {
     return (
       <div className="flex justify-center items-center h-[calc(100vh-80px)]">
         <Loader className="h-8 w-8" />
@@ -131,6 +140,7 @@ export default function TaskManager() {
                   setEditingTask(null)
                 }}
                 initialData={editingTask}
+                isSubmitting={editingTask ? isUpdating : isAdding}
               />
             </Card>
           )}
@@ -140,7 +150,8 @@ export default function TaskManager() {
             onDelete={handleDeleteTask}
             onToggleComplete={handleToggleTaskCompletion}
             onEdit={startEditTask}
-            onReorder={(newTasks) => setTasks(newTasks)}
+            onReorder={() => {}}
+            deletingTaskId={deletingTaskId || undefined}
           />
         </div>
 
