@@ -99,4 +99,4 @@ The frontend expects the backend API to be running at `http://localhost:4000`.
 
 ## License
 
-This project is for educational/demo purposes. See individual folders for more details. 
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details. 
